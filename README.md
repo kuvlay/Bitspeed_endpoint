@@ -4,14 +4,14 @@ Backend service for contact identity reconciliation using Node.js, Express, Type
 
 ## Live Endpoint
 
-- Hosted Base URL: `PASTE_YOUR_HOSTED_BASE_URL_HERE`
+- Hosted Base URL: `https://bitspeed-endpoint.onrender.com`
 - Identify Endpoint: `POST /identify`
 - Health Endpoint: `GET /health`
 
-Example after hosting:
+Hosted URLs:
 
-- `GET https://your-app.onrender.com/health`
-- `POST https://your-app.onrender.com/identify`
+- `GET https://bitspeed-endpoint.onrender.com/health`
+- `POST https://bitspeed-endpoint.onrender.com/identify`
 
 ## Tech Stack
 
@@ -100,6 +100,8 @@ try { Invoke-WebRequest -Method Post -Uri "$base/identify" -ContentType "applica
 
 - `GET /` is not defined by design, so `Cannot GET /` is expected.
 - Contact records are reconciled and merged according to oldest primary-contact rule.
+- Render build command used:
+  `npm install && npm run build && npx prisma migrate deploy`
 
 ## Submission Checklist
 
