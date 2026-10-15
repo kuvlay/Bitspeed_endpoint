@@ -14,16 +14,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aarish-io/Bitspeed_endpoint.git"
+    "url": "git+https://github.com/kuvlay/Bitspeed_endpoint.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/aarish-io/Bitspeed_endpoint/issues"
+    "url": "https://github.com/kuvlay/Bitspeed_endpoint/issues"
   },
-  "homepage": "https://github.com/aarish-io/Bitspeed_endpoint#readme",
+  "homepage": "https://github.com/kuvlay/Bitspeed_endpoint#readme",
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
