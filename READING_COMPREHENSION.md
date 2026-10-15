@@ -1,16 +1,16 @@
 # Reading Comprehension: Full Project Walkthrough
 
-This guide explains exactly how your backend works today, top to bottom, with file paths and line numbers.
+A source-reading guide to request validation, contact reconciliation, and PostgreSQL persistence. Links are relative to this repository; line numbers can shift as the code evolves.
 
 ## 1) Project map
 
-1. [src/index.ts](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts)
-2. [src/routes/identify.ts](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts)
-3. [src/lib/reconcile.ts](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts)
-4. [src/lib/prisma.ts](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\prisma.ts)
-5. [src/types/api.ts](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\types\api.ts)
-6. [prisma/schema.prisma](C:\Users\Aarish\Desktop\Bitspeed_endpoint\prisma\schema.prisma)
-7. [prisma/migrations/20260301120000_init_contact/migration.sql](C:\Users\Aarish\Desktop\Bitspeed_endpoint\prisma\migrations\20260301120000_init_contact\migration.sql)
+1. [src/index.ts](src/index.ts)
+2. [src/routes/identify.ts](src/routes/identify.ts)
+3. [src/lib/reconcile.ts](src/lib/reconcile.ts)
+4. [src/lib/prisma.ts](src/lib/prisma.ts)
+5. [src/types/api.ts](src/types/api.ts)
+6. [prisma/schema.prisma](prisma/schema.prisma)
+7. [prisma/migrations/20260301120000_init_contact/migration.sql](prisma/migrations/20260301120000_init_contact/migration.sql)
 
 ## 2) Entry flow in plain English
 
@@ -26,12 +26,12 @@ This guide explains exactly how your backend works today, top to bottom, with fi
 ## 3.1 `src/index.ts` (bootstraps Express app)
 
 Important lines:
-1. [src/index.ts:1](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:1)
-2. [src/index.ts:8](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:8)
-3. [src/index.ts:10](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:10)
-4. [src/index.ts:14](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:14)
-5. [src/index.ts:16](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:16)
-6. [src/index.ts:21](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\index.ts:21)
+1. [src/index.ts:1](src/index.ts#L1)
+2. [src/index.ts:8](src/index.ts#L8)
+3. [src/index.ts:10](src/index.ts#L10)
+4. [src/index.ts:14](src/index.ts#L14)
+5. [src/index.ts:16](src/index.ts#L16)
+6. [src/index.ts:21](src/index.ts#L21)
 
 What these lines do:
 1. `import "dotenv/config";`
@@ -48,13 +48,13 @@ Mounts your identify router. Any request to `/identify` enters that router.
 ## 3.2 `src/routes/identify.ts` (API boundary)
 
 Important lines:
-1. [src/routes/identify.ts:6](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:6)
-2. [src/routes/identify.ts:11](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:11)
-3. [src/routes/identify.ts:15](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:15)
-4. [src/routes/identify.ts:29](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:29)
-5. [src/routes/identify.ts:31](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:31)
-6. [src/routes/identify.ts:40](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:40)
-7. [src/routes/identify.ts:43](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:43)
+1. [src/routes/identify.ts:6](src/routes/identify.ts#L6)
+2. [src/routes/identify.ts:11](src/routes/identify.ts#L11)
+3. [src/routes/identify.ts:15](src/routes/identify.ts#L15)
+4. [src/routes/identify.ts:29](src/routes/identify.ts#L29)
+5. [src/routes/identify.ts:31](src/routes/identify.ts#L31)
+6. [src/routes/identify.ts:40](src/routes/identify.ts#L40)
+7. [src/routes/identify.ts:43](src/routes/identify.ts#L43)
 
 What these lines do:
 1. `identifySchema` defines allowed input shape.
@@ -65,14 +65,21 @@ Extra rule: at least one field must exist.
 4. `identifyRouter.post("/", ...)` handles `POST /identify`.
 5. `identifySchema.parse(req.body)` validates request. If invalid, throws `ZodError`.
 6. `reconcileIdentity(normalized)` calls business logic.
-7. If validation fails, returns `400` with details.
+7. If validation fails, returns `400` with details. The HTTP response maps the internal `primaryContactId` to the existing public key `primaryContatctId` (including that spelling).
 
 Code snippet from route:
 ```ts
 const parsed = identifySchema.parse(req.body);
 const normalized = normalizeInput(parsed);
 const result = await reconcileIdentity(normalized);
-return res.status(200).json({ contact: result });
+return res.status(200).json({
+  contact: {
+    primaryContatctId: result.primaryContactId,
+    emails: result.emails,
+    phoneNumbers: result.phoneNumbers,
+    secondaryContactIds: result.secondaryContactIds,
+  },
+});
 ```
 
 ## 3.3 `src/lib/reconcile.ts` (core identity reconciliation)
@@ -80,13 +87,13 @@ return res.status(200).json({ contact: result });
 This is the main algorithm.
 
 Important lines:
-1. [src/lib/reconcile.ts:87](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:87)
-2. [src/lib/reconcile.ts:96](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:96)
-3. [src/lib/reconcile.ts:108](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:108)
-4. [src/lib/reconcile.ts:134](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:134)
-5. [src/lib/reconcile.ts:146](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:146)
-6. [src/lib/reconcile.ts:170](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:170)
-7. [src/lib/reconcile.ts:183](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\reconcile.ts:183)
+1. [src/lib/reconcile.ts:87](src/lib/reconcile.ts#L87)
+2. [src/lib/reconcile.ts:96](src/lib/reconcile.ts#L96)
+3. [src/lib/reconcile.ts:108](src/lib/reconcile.ts#L108)
+4. [src/lib/reconcile.ts:134](src/lib/reconcile.ts#L134)
+5. [src/lib/reconcile.ts:146](src/lib/reconcile.ts#L146)
+6. [src/lib/reconcile.ts:170](src/lib/reconcile.ts#L170)
+7. [src/lib/reconcile.ts:183](src/lib/reconcile.ts#L183)
 
 What these lines do:
 1. Starts a DB transaction.
@@ -110,10 +117,10 @@ await tx.contact.updateMany({
 ## 3.4 `src/lib/prisma.ts` (database client)
 
 Important lines:
-1. [src/lib/prisma.ts:1](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\prisma.ts:1)
-2. [src/lib/prisma.ts:4](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\prisma.ts:4)
-3. [src/lib/prisma.ts:10](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\prisma.ts:10)
-4. [src/lib/prisma.ts:12](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\lib\prisma.ts:12)
+1. [src/lib/prisma.ts:1](src/lib/prisma.ts#L1)
+2. [src/lib/prisma.ts:4](src/lib/prisma.ts#L4)
+3. [src/lib/prisma.ts:10](src/lib/prisma.ts#L10)
+4. [src/lib/prisma.ts:12](src/lib/prisma.ts#L12)
 
 What these lines do:
 1. Import Prisma client.
@@ -124,8 +131,8 @@ What these lines do:
 ## 3.5 `src/types/api.ts` (shared API contract)
 
 Important lines:
-1. [src/types/api.ts:1](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\types\api.ts:1)
-2. [src/types/api.ts:6](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\types\api.ts:6)
+1. [src/types/api.ts:1](src/types/api.ts#L1)
+2. [src/types/api.ts:6](src/types/api.ts#L6)
 
 What these lines do:
 1. `IdentifyInput` tells route/service what input shape is.
@@ -134,9 +141,9 @@ What these lines do:
 ## 3.6 Prisma schema (`prisma/schema.prisma`)
 
 Important lines:
-1. [prisma/schema.prisma:10](C:\Users\Aarish\Desktop\Bitspeed_endpoint\prisma\schema.prisma:10)
-2. [prisma/schema.prisma:15](C:\Users\Aarish\Desktop\Bitspeed_endpoint\prisma\schema.prisma:15)
-3. [prisma/schema.prisma:25](C:\Users\Aarish\Desktop\Bitspeed_endpoint\prisma\schema.prisma:25)
+1. [prisma/schema.prisma:10](prisma/schema.prisma#L10)
+2. [prisma/schema.prisma:15](prisma/schema.prisma#L15)
+3. [prisma/schema.prisma:25](prisma/schema.prisma#L25)
 
 What these lines do:
 1. Enum `LinkPrecedence` = `primary | secondary`.
@@ -146,7 +153,7 @@ What these lines do:
 
 ## 4) What "normalize" means in your code
 
-Current normalize code in [identify.ts:15](C:\Users\Aarish\Desktop\Bitspeed_endpoint\src\routes\identify.ts:15):
+Current normalize code in [identify.ts:15](src/routes/identify.ts#L15):
 ```ts
 const email = input.email ? input.email.toLowerCase() : null;
 const phoneNumber = input.phoneNumber ? input.phoneNumber.replace(/\D/g, "") : null;
@@ -213,7 +220,7 @@ curl -X POST http://localhost:3000/identify -H "Content-Type: application/json" 
 curl -X POST http://localhost:3000/identify -H "Content-Type: application/json" -d "{\"email\":\"a@x.com\",\"phoneNumber\":\"222\"}"
 ```
 
-Observed expected behavior from this codebase:
+Expected behavior from reading the implementation:
 1. First call creates primary.
 2. Second call adds secondary under first primary.
 3. Third call creates separate primary.
@@ -248,4 +255,4 @@ Type-safe DB client used instead of raw SQL in app logic.
 1. All required files exist.
 2. Route + normalization + reconciliation are fully implemented.
 3. DB schema and migration baseline exist.
-4. Build succeeds and endpoint flow works.
+4. A successful build and live reconciliation flow still require a configured PostgreSQL environment. These commands were not executed during this documentation review.
